@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>TaskFlow 审计</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:2rem;color:#222}
+nav a{margin-right:1rem}
+table{border-collapse:collapse;margin-top:.5rem}
+td,th{border:1px solid #ccc;padding:.4rem .7rem;text-align:left}
+</style>
+</head>
+<body>
+<h1>TaskFlow 审计日志</h1>
+<nav><a href="/tasks">任务</a><a href="/schedule">调度</a><a href="/records">执行记录</a><a href="/audit">审计</a></nav>
+<p id="count"></p>
+<table id="audit"><thead><tr><th>时间</th><th>类型</th><th>命名空间</th><th>Key</th><th>详情</th></tr></thead><tbody></tbody></table>
+<script>
+async function load(){
+  const data = await (await fetch('/api/audit')).json();
+  document.querySelector('#count').textContent = '事件总数: ' + data.count + '，按类型: ' + JSON.stringify(data.by_type);
+  const tb = document.querySelector('#audit tbody');
+  tb.innerHTML = '';
+  for (const e of data.entries) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${e.at}</td><td>${e.type}</td><td>${e.namespace || ''}</td><td>${e.key || ''}</td><td>${e.detail || ''}</td>`;
+    tb.appendChild(tr);
+  }
+}
+load();
+</script>
+</body>
+</html>

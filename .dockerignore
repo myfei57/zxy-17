@@ -1,0 +1,13 @@
+.git
+.claude
+.verification-cache
+evidence
+runner
+staging
+workspaces
+private_oracles
+case_metadata
+*.jsonl
+*.exe
+gocache
+gomodcache
