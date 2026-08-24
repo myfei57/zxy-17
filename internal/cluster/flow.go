@@ -137,9 +137,6 @@ func (c *Cluster) Retry(namespace string, id string) error {
 	if next == 0 {
 		return fmt.Errorf("cluster: retry cap reached for %s", id)
 	}
-	if err := retry.Commit(cursorPath, next-1); err != nil {
-		return err
-	}
 	op, err := rt.Records.Append(record.Record{
 		TaskID:    id,
 		Namespace: namespace,
@@ -151,6 +148,14 @@ func (c *Cluster) Retry(namespace string, id string) error {
 		return err
 	}
 	if err := rt.Records.Commit(op.Seq); err != nil {
+		return err
+	}
+	// The dedup cursor may only advance once the new attempt is durably
+	// recorded. Advancing it earlier loses the retry round on crash: the
+	// cursor is written atomically while the attempt is still uncommitted,
+	// so on recovery the attempt is dropped and Next sees the failure as
+	// already processed, returning 0 and skipping the retry entirely.
+	if err := retry.Commit(cursorPath, next-1); err != nil {
 		return err
 	}
 	if err := rt.Tasks.UpdateState(id, task.Ready); err != nil {
