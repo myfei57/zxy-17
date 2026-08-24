@@ -163,7 +163,9 @@ func (c *Cluster) Retry(namespace string, id string) error {
 }
 
 // SubmitShard durably records one shard result under an idempotency key, then
-// advances the shard completion cursor.
+// advances the shard completion cursor. The result is committed before the
+// cursor moves, so a crash cannot leave the cursor past a shard whose result
+// was never written.
 func (c *Cluster) SubmitShard(namespace string, id string, key string, shardNo int, total int, data string) error {
 	rt, ok := c.Runtime[namespace]
 	if !ok {
@@ -193,14 +195,14 @@ func (c *Cluster) SubmitShard(namespace string, id string, key string, shardNo i
 		Data:   data,
 	}
 	cursorPath := settings.CursorPath(c.Cfg.DataDir, namespace, id+".shards")
-	if err := shard.Complete(cursorPath, shardNo, result); err != nil {
-		return err
-	}
 	op, err := rt.Records.AppendShardResult(result)
 	if err != nil {
 		return err
 	}
 	if err := rt.Records.Commit(op.Seq); err != nil {
+		return err
+	}
+	if err := shard.Complete(cursorPath, shardNo, result); err != nil {
 		return err
 	}
 	if err := rt.Idem.Consume(key, id); err != nil {
