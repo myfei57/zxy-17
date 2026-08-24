@@ -19,9 +19,9 @@ func (s *Scheduler) Dispatch(auditLogger *audit.Logger, executor string) (*lease
 	if !ok {
 		return nil, fmt.Errorf("scheduler: unknown task %s", id)
 	}
-	if err := s.store.UpdateState(id, task.Running); err != nil {
-		return nil, err
-	}
+	// Persist the execution record before flipping the task to Running. If the
+	// record fails to land on disk the task stays Ready and can be retried,
+	// rather than being left Running with no record for this attempt.
 	op, err := s.records.Append(record.Record{
 		TaskID:    id,
 		Namespace: t.Namespace,
@@ -32,6 +32,9 @@ func (s *Scheduler) Dispatch(auditLogger *audit.Logger, executor string) (*lease
 		return nil, err
 	}
 	if err := s.records.Commit(op.Seq); err != nil {
+		return nil, err
+	}
+	if err := s.store.UpdateState(id, task.Running); err != nil {
 		return nil, err
 	}
 	gr, err := s.leases.Grant(id, executor)
