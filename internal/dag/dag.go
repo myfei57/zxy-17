@@ -4,8 +4,6 @@ package dag
 import (
 	"fmt"
 	"sync"
-
-	"taskflow/internal/task"
 )
 
 // Edge is a dependency from one task to another.
@@ -16,10 +14,9 @@ type Edge struct {
 
 // Graph tracks dependency edges for a namespace.
 type Graph struct {
-	mu       sync.Mutex
-	edges    map[string][]string
-	reverse  map[string][]string
-	snapshot map[string]task.State
+	mu      sync.Mutex
+	edges   map[string][]string
+	reverse map[string][]string
 }
 
 // NewGraph returns an empty dependency graph.
