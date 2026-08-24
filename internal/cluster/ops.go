@@ -83,22 +83,28 @@ func (c *Cluster) MarkReady(namespace string, id string) error {
 }
 
 // Dispatch hands the next ready task to an executor.
+//
+// The concurrency slot is reserved before the lease is granted, so an
+// over-budget dispatch is rejected without issuing a lease or moving the task
+// out of the ready queue. If dispatch yields no task, or fails before a lease
+// is granted, the reserved slot is returned to the budget.
 func (c *Cluster) Dispatch(namespace string, executor string) error {
 	rt, ok := c.Runtime[namespace]
 	if !ok {
 		return fmt.Errorf("cluster: unknown namespace %s", namespace)
 	}
-	gr, err := rt.Scheduler.Dispatch(c.Audit, executor)
-	if err != nil {
-		return err
-	}
-	if err := rt.Quota.Check(); err != nil {
-		return err
-	}
-	if gr == nil {
+	if rt.Scheduler.ReadyCount() == 0 {
 		return nil
 	}
-	return rt.Quota.Acquire()
+	if err := rt.Quota.Acquire(); err != nil {
+		return err
+	}
+	gr, err := rt.Scheduler.Dispatch(c.Audit, executor)
+	if err != nil || gr == nil {
+		_ = rt.Quota.Release()
+		return err
+	}
+	return nil
 }
 
 // ReadyCount returns the number of queued tasks.

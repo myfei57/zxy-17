@@ -101,7 +101,7 @@ func buildNamespaceRuntime(cfg settings.Settings, id string) (*NamespaceRuntime,
 	}
 	graph := dag.NewGraph()
 	idemManager := idem.NewManager(settings.IdemPath(cfg.DataDir, id))
-	sched := scheduler.New(taskStore, graph, recordStore, leaseManager, quotaManager)
+	sched := scheduler.New(taskStore, graph, recordStore, leaseManager)
 	return &NamespaceRuntime{
 		Tasks:     taskStore,
 		Graph:     graph,

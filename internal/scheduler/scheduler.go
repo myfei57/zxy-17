@@ -7,7 +7,6 @@ import (
 
 	"taskflow/internal/dag"
 	"taskflow/internal/lease"
-	"taskflow/internal/quota"
 	"taskflow/internal/record"
 	"taskflow/internal/task"
 )
@@ -19,13 +18,12 @@ type Scheduler struct {
 	graph   *dag.Graph
 	records *record.Store
 	leases  *lease.Manager
-	quota   *quota.Manager
 	ready   []string
 }
 
 // New creates a scheduler for a namespace.
-func New(store *task.Store, graph *dag.Graph, records *record.Store, leases *lease.Manager, quota *quota.Manager) *Scheduler {
-	return &Scheduler{store: store, graph: graph, records: records, leases: leases, quota: quota}
+func New(store *task.Store, graph *dag.Graph, records *record.Store, leases *lease.Manager) *Scheduler {
+	return &Scheduler{store: store, graph: graph, records: records, leases: leases}
 }
 
 // Enqueue adds a task id to the ready queue.
